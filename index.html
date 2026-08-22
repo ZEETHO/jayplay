@@ -2,7 +2,10 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Bundled Page</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#efe2ca">
+  <title>JayPlay</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { background: #e6dcc8; display: flex; align-items: center; justify-content: center; min-height: 100vh; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
@@ -317,6 +320,67 @@ document.addEventListener('DOMContentLoaded', async function() {
     // preserve ordering (React before ReactDOM before Babel before text/babel).
     const doc = new DOMParser().parseFromString(template, 'text/html');
     document.documentElement.replaceWith(doc.documentElement);
+
+    // Mobile: fill the real device instead of showing a phone-in-a-phone canvas.
+    (function jayplayFitMobile() {
+      var css = document.createElement('style');
+      css.setAttribute('data-jayplay-mobile', '1');
+      css.textContent = [
+        '@media (max-width: 700px) {',
+        '  html, body { margin:0 !important; padding:0 !important; width:100% !important; height:100% !important; overflow:hidden !important; background:#efe2ca !important; }',
+        '  .dv-thd, .dv-olabel, .dv-next { display:none !important; }',
+        '  .dv-turn { padding:0 !important; border:0 !important; height:100dvh !important; max-height:100dvh !important; overflow:hidden !important; }',
+        '  .dv-opts { display:block !important; gap:0 !important; width:100% !important; height:100% !important; }',
+        '  .dv-opt { width:100vw !important; height:100dvh !important; gap:0 !important; }',
+        '  .dv-opt[hidden] { display:none !important; }',
+        '  [data-om-starter="ios-frame"] { width:100vw !important; height:100dvh !important; border-radius:0 !important; box-shadow:none !important; max-width:none !important; }',
+        '  [data-om-starter="ios-frame"] > div:nth-child(1),',
+        '  [data-om-starter="ios-frame"] > div:nth-child(2),',
+        '  [data-om-starter="ios-frame"] > div:nth-child(4) { display:none !important; }',
+        '  [data-jayplay-switcher] { position:fixed; top:calc(env(safe-area-inset-top, 0px) + 8px); left:50%; transform:translateX(-50%); z-index:80; display:flex; gap:6px; padding:4px; background:rgba(32,30,29,.55); border-radius:999px; backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); }',
+        '  [data-jayplay-switcher] button { appearance:none; border:0; background:transparent; color:#f5ead8; font:600 12px/1 -apple-system,system-ui,sans-serif; padding:7px 11px; border-radius:999px; }',
+        '  [data-jayplay-switcher] button[aria-current="true"] { background:#f5ead8; color:#201e1d; }',
+        '}',
+        '@media (min-width: 701px) { [data-jayplay-switcher] { display:none !important; } }'
+      ].join('\\n');
+      (document.head || document.documentElement).appendChild(css);
+
+      function mountSwitcher() {
+        if (window.matchMedia && !window.matchMedia('(max-width: 700px)').matches) return;
+        if (document.querySelector('[data-jayplay-switcher]')) return;
+        var opts = Array.prototype.slice.call(document.querySelectorAll('.dv-opt'));
+        if (opts.length < 2) return;
+        var labels = ['Path', 'Stones', 'Climb'];
+        var bar = document.createElement('div');
+        bar.setAttribute('data-jayplay-switcher', '1');
+        opts.forEach(function (el, i) {
+          if (i) el.setAttribute('hidden', '');
+          var b = document.createElement('button');
+          b.type = 'button';
+          b.textContent = labels[i] || ('Take ' + (i + 1));
+          if (!i) b.setAttribute('aria-current', 'true');
+          b.addEventListener('click', function () {
+            opts.forEach(function (o, j) {
+              if (j === i) o.removeAttribute('hidden');
+              else o.setAttribute('hidden', '');
+            });
+            Array.prototype.forEach.call(bar.querySelectorAll('button'), function (btn, j) {
+              if (j === i) btn.setAttribute('aria-current', 'true');
+              else btn.removeAttribute('aria-current');
+            });
+          });
+          bar.appendChild(b);
+        });
+        document.body.appendChild(bar);
+      }
+      mountSwitcher();
+      var n = 0;
+      var t = setInterval(function () {
+        n++;
+        mountSwitcher();
+        if (document.querySelector('[data-om-starter="ios-frame"]') || n > 40) clearInterval(t);
+      }, 250);
+    })();
 
     // Resolve page-frame markers: mint this document's own blob for each
     // framed page — from local text when this is the root, otherwise by
